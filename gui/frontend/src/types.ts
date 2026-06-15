@@ -23,12 +23,28 @@ export interface CollectorStatus {
   notes: string[];
 }
 
+export interface ModernStatus {
+  available: boolean;
+  python: string;
+  collector_path: string;
+  is_windows: boolean;
+  is_admin: boolean;
+  runnable: boolean;
+  admin_artifacts: string[];
+  notes: string[];
+}
+
+export type Engine = "fastir" | "modern";
+
 export interface Meta {
+  engines: Engine[];
   packages: PackageInfo[];
   dump_options: DumpOption[];
   output_types: string[];
   dump_package: string;
   status: CollectorStatus;
+  modern_packages: PackageInfo[];
+  modern_status: ModernStatus;
   repo_root: string;
 }
 

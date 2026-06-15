@@ -6,7 +6,7 @@ import { Console } from "./components/Console";
 import { RunHistory } from "./components/RunHistory";
 import { SettingsModal } from "./components/SettingsModal";
 import { Button, Dot, Pill } from "./components/ui";
-import type { CollectorStatus, Meta, RunSummary } from "./types";
+import type { CollectorStatus, Engine, Meta, RunSummary } from "./types";
 
 const DEFAULT_CFG: Config = {
   packages: new Set(["fast"]),
@@ -17,9 +17,16 @@ const DEFAULT_CFG: Config = {
   homedrive: "",
 };
 
-function toOptions(cfg: Config): StartOptions {
+// Sensible default package selection when switching engine.
+const ENGINE_DEFAULT_PACKAGES: Record<Engine, string[]> = {
+  fastir: ["fast"],
+  modern: ["timeline", "jumplists", "muicache", "pshistory", "aiapps", "crypto"],
+};
+
+function toOptions(cfg: Config, engine: Engine): StartOptions {
   return {
     packages: [...cfg.packages],
+    engine,
     output_type: cfg.output_type,
     output_dir: cfg.output_dir.trim() || null,
     dump: [...cfg.dump],
@@ -31,6 +38,7 @@ function toOptions(cfg: Config): StartOptions {
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [status, setStatus] = useState<CollectorStatus | null>(null);
+  const [engine, setEngineState] = useState<Engine>("fastir");
   const [cfg, setCfg] = useState<Config>(DEFAULT_CFG);
   const [command, setCommand] = useState<string | null>(null);
 
@@ -69,12 +77,18 @@ export default function App() {
     }
     const t = setTimeout(() => {
       api
-        .previewCommand(toOptions(cfg))
+        .previewCommand(toOptions(cfg, engine))
         .then((r) => setCommand(r.command))
         .catch((e) => setCommand(`// ${(e as Error).message}`));
     }, 200);
     return () => clearTimeout(t);
-  }, [cfg, status]);
+  }, [cfg, engine, status]);
+
+  // Switching engine swaps the package universe, so reset the selection.
+  const setEngine = (e: Engine) => {
+    setEngineState(e);
+    setCfg({ ...cfg, packages: new Set(ENGINE_DEFAULT_PACKAGES[e]), dump: new Set(["mft"]) });
+  };
 
   // --- stream a run via SSE ---
   const attachStream = useCallback(
@@ -103,7 +117,7 @@ export default function App() {
   const onRun = async () => {
     setError(null);
     try {
-      const summary = await api.start(toOptions(cfg));
+      const summary = await api.start(toOptions(cfg, engine));
       setLines([]);
       setActiveId(summary.id);
       setRunStatus("running");
@@ -138,7 +152,32 @@ export default function App() {
   };
 
   const activeRun = useMemo(() => runs.find((r) => r.id === activeId) ?? null, [runs, activeId]);
-  const statusTone = status?.runnable ? "ok" : status?.collector_found ? "warn" : "bad";
+
+  const modern = meta?.modern_status;
+  const statusTone =
+    engine === "modern"
+      ? modern?.is_admin
+        ? "ok"
+        : modern?.runnable
+        ? "warn"
+        : "bad"
+      : status?.runnable
+      ? "ok"
+      : status?.collector_found
+      ? "warn"
+      : "bad";
+  const statusLabel =
+    engine === "modern"
+      ? modern?.is_admin
+        ? "ready (admin)"
+        : modern?.runnable
+        ? "ready · user artifacts"
+        : "needs windows host"
+      : status?.runnable
+      ? "ready"
+      : status?.collector_found
+      ? "needs elevation / py2"
+      : "collector missing";
 
   if (!meta || !status) {
     return (
@@ -166,7 +205,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <Pill tone={statusTone}>
             <Dot tone={statusTone} />
-            {status.runnable ? "ready" : status.collector_found ? "needs elevation / py2" : "collector missing"}
+            {statusLabel}
           </Pill>
           <Button variant="ghost" onClick={() => setSettingsOpen(true)}>
             ⚙ Settings
@@ -185,6 +224,9 @@ export default function App() {
         <div className="col-span-12 min-h-0 lg:col-span-3">
           <ConfigPanel
             meta={meta}
+            engine={engine}
+            setEngine={setEngine}
+            packages={engine === "modern" ? meta.modern_packages : meta.packages}
             cfg={cfg}
             setCfg={setCfg}
             command={command}

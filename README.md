@@ -15,6 +15,14 @@ letting you browse the resulting CSV/JSON artefacts from the browser.
   console, run history, and a CSV/JSON artefact viewer.
 - **Demo stub** — speaks the same CLI so the UI can be explored on any OS without Python 2 / Windows / admin.
 
+It also ships a **Modern engine** — a native Python 3 collector for post-2015 Windows artefacts that the
+original FastIR never covered: BAM/DAM, ShimCache, MUICache, RecentApps, PSReadLine history, Windows Timeline,
+Jump Lists, Defender exclusions, Amcache/SRUM acquisition — plus the newest of all: **local AI/LLM tooling**
+(Ollama, LM Studio, ChatGPT/Claude desktop) with redacted API-key detection, **Windows 11 Recall** snapshot
+data, and **cryptocurrency wallets** (desktop wallets + browser extensions like MetaMask/Phantom). Every run
+emits a severity-ranked `_indicators` triage file. It runs on plain Python 3, so user-level artefacts collect
+without admin.
+
 ```
 cd gui
 ./run.ps1          # Windows; run as administrator for a real collection

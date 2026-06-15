@@ -39,6 +39,41 @@ process** on one port.
 | Advanced → Profile | `--profile <file.conf>` |
 | Advanced → Homedrive | `--homedrive C:` |
 
+## Two engines
+
+The GUI can drive **two** collectors, switchable from the top of the Collection plan:
+
+### `FastIR` — the original collector
+The Python 2 `main.py` (or a compiled `fastIR_x64.exe`). Covers the classic 2015-era
+artifacts (fs, health, registry, memory, evt, dump, filecatcher).
+
+### `Modern` — a Python 3 extension for post-2015 artifacts
+[`backend/modern_collector.py`](backend/modern_collector.py) is a native Python 3
+collector (stdlib only — `winreg` / `sqlite3` / `struct`) that gathers the modern
+Windows artifacts FastIR never covered. It runs on the **same Python that powers the
+backend**, so it works immediately on a live Windows host — user-level artifacts need
+no admin.
+
+| Artifact | What it surfaces | Admin |
+|----------|------------------|:-----:|
+| `bam` | BAM/DAM — per-user program execution with timestamps | ✓ |
+| `shimcache` | AppCompatCache execution/presence (Win8/10/11 parser) | ✓ |
+| `muicache` | Names of executed applications | |
+| `recentapps` | Search RecentApps — launches, counts, last access | |
+| `pshistory` | PSReadLine console history — attacker command lines | |
+| `timeline` | Windows Timeline (`ActivitiesCache.db`) activity history | |
+| `jumplists` | Recently opened files per application | |
+| `defender` | Microsoft Defender exclusions + detection history | ✓ |
+| `amcache` / `srum` | Acquire `Amcache.hve` / `SRUDB.dat` for offline analysis | ✓ |
+| **`aiapps`** | **Local AI/LLM tools** (Ollama, LM Studio, GPT4All, Jan, ChatGPT/Claude/Cursor/Copilot) **and leaked API keys** (redacted) | |
+| **`recall`** | **Windows 11 Recall** snapshot database (`ukg.db`) + image store | |
+| **`crypto`** | **Cryptocurrency wallets** (Bitcoin/Electrum/Exodus/Ledger/…) and **browser wallet extensions** (MetaMask, Phantom, …) | |
+
+Every modern run also writes **`_indicators`** — a severity-ranked triage list that
+flags suspicious findings (execution from temp/appdata, encoded PowerShell, Defender
+exclusions, leaked API keys, crypto wallets, Recall snapshots). The collector is
+read-only and never emits secrets in clear text.
+
 ## Quick start
 
 From this `gui/` folder:

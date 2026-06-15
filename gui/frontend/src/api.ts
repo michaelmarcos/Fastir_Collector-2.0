@@ -15,6 +15,7 @@ async function j<T>(res: Response): Promise<T> {
 
 export interface StartOptions {
   packages: string[];
+  engine: string;
   output_type: string;
   output_dir?: string | null;
   dump: string[];

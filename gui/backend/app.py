@@ -244,13 +244,14 @@ def download_artifact(run_id: str, rel: str):
     return FileResponse(path, filename=path.name)
 
 
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
+
+
 # --- static frontend (serve built SPA if present) ----------------------------
+# Mounted LAST so the catch-all at "/" never shadows the API or /healthz routes.
 
 _DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if _DIST.exists():
     app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="spa")
-
-
-@app.get("/healthz")
-def healthz():
-    return {"ok": True}

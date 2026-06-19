@@ -173,6 +173,31 @@ npm run dev        # http://127.0.0.1:5173, proxies /api to :8099
 For a production-style single process, `npm run build` then start uvicorn — the
 backend auto-serves `frontend/dist`.
 
+## Testing
+
+Backend tests are pytest-based and run fully offline — they drive the bundled demo stub
+and exercise the parsers/heuristics with synthetic inputs, so no real Windows host, admin,
+Python 2, or Anthropic API key is required.
+
+```powershell
+cd backend
+./.venv/Scripts/python.exe -m pip install -r requirements-dev.txt
+./.venv/Scripts/python.exe -m pytest tests/ -q
+```
+
+Coverage (48 tests):
+- **collector** — CLI contract, detection, fastir/modern command building, validation errors.
+- **modern_collector** — FILETIME/epoch conversion, `suspect_path`/`suspect_exec`, the
+  DestList parser, the LNK parser, redaction, and the package/collector registry.
+- **analysis** — evidence digest, structured-ATT&CK extraction, heuristic report + structured
+  output, per-row explain, the SSE generator, and availability.
+- **runs** — run lifecycle, artifact discovery, CSV/JSON preview, and the path-traversal guard.
+- **api** — end-to-end via FastAPI's `TestClient`: meta, settings, preview-command, a full
+  collection through the stub (start → poll → artifacts → preview → download), explain,
+  analyze SSE, 400/404 paths, and `/healthz`.
+
+Frontend gate: `cd frontend && npm run build` (runs `tsc --noEmit` then Vite build).
+
 ## API
 
 | Method | Path | Purpose |
